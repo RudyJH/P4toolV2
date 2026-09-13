@@ -1,5 +1,11 @@
-__package__ = "FastAPI-ex4-Utils"
+""" Utility functions for parsing user agents and extracting browser and platform information.
+    Should this be a class or just a module with functions? TBD. For now, it's a module with functions.
+"""
 
+__package__ = "ppp_utils"
+
+from fastapi import FastAPI, Request, Depends
+from fastapi.responses import HTMLResponse
 
 def parse_browser(user_agent: str) -> str:
     ua = user_agent or ""
@@ -33,11 +39,22 @@ def parse_platform(user_agent: str) -> str:
     return "Unknown"
 
 
-def get_browser_info(request: Request) -> dict:
-    user_agent = request.headers.get("user-agent", "")
+""" how to use:
+ # Get browser info at startup for logging purposes. Haha! that only makes on the client
+    fake_headers = {"user-agent": "Startup/1.0"}
+    class _DummyRequest:
+        def __init__(self, headers):
+            self.headers = headers
+    info = ppp_utils.get_browser_info(_DummyRequest(fake_headers))
+    print("Startup browser info helper ready:", info)
+    """
+
+""" def get_browser_info(request: Request) -> dict:
+    user_agent = request.headers.get("user-agent")
     return {
         "user_agent": user_agent,
         "browser": parse_browser(user_agent),
         "platform": parse_platform(user_agent),
     }
 
+""" 
