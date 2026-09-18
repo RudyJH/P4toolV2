@@ -51,7 +51,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.core.config import settings
+# importing SETTTINGS sets environment variables and reads .env file if present
+from app.core.config import settings 
 from app.db.database import engine, Base
 from app.routers import users
 from app.splash_route import render_splash
@@ -65,8 +66,11 @@ SPLASH_SCREEN = "Public Policy and Personality Profile tool"
 startup_time = None
 
 # 0: No DB, testing and development mode; 1: SQLite; 2: PostgreSQL
-DB_INIT = int(os.getenv("DB_INIT", "0"))
+DB_INIT = int(settings.DB_INIT)
+print(f"*** DB_INIT value: {DB_INIT} ***")  # debug
+
 DB_ROUTER_ENABLED = DB_INIT != 0
+DB_INIT_ERROR = None
 
 # Debug and Dev command loop for testing and development purposes
 command_loop_stop = threading.Event()
@@ -87,9 +91,16 @@ def command_loop(stop_event: threading.Event) -> None:
                 print("\n*** Exit command received. Stopping command loop. ***")
                 stop_event.set()
                 break
-                            
-            print(f"\nYou entered: {command} - doing nothing ")
+            elif command.lower() == "q":
+               # Send SIGQUIT signal to the current process to trigger a graceful shutdown
+                print("\n*** Quit command received. Send SIGQUIT to Server. ***")
+                app.post("/shutdown")  # Trigger shutdown endpoint
+                stop_event.set()
+                break
+            else:            
+                print(f"\nYou entered: {command} - doing nothing ")
     print("\n*** Command loop stopped. ***")
+    exit(0)  # Exit the command loop thread gracefully
 
 # Here is where the action starts. 
 # The FastAPI app is created, CORS middleware is added, and the lifespan
@@ -108,16 +119,25 @@ async def lifespan(app: FastAPI):
    #  print(" Platform and Browser Info: ", ppp_utils.get_browser_info(user_agent ) ) # dev log  # fix later
 
     if DB_INIT:
-        # Startup — create tables (use Alembic in production)
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+        try:
+            # Startup — create tables (use Alembic in production)
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            print("*** Database initialized successfully ***")
+        except Exception as exc:  # pragma: no cover - app should continue in degraded mode
+            global DB_INIT_ERROR, DB_ROUTER_ENABLED
+            DB_INIT_ERROR = exc
+            DB_ROUTER_ENABLED = False
+            print(f"*** Database initialization failed: {exc} ***")
+            print("*** Continuing without DB routes because the app should not fail startup. ***")
     else:
         print("*** DB initialization skipped because DB_INIT=0 ***")
 
     command_thread = threading.Thread(target=command_loop, args=(command_loop_stop,), daemon=True)
-    command_thread.start()
+    command_thread.start()  # start the command loop in a separate thread for development purposes
 
-    yield
+    yield  # and wait for the app to run. 
+    # The lifespan context manager will resume here when the app is shutting down.
 
     # normal shutdown processes
     
@@ -128,13 +148,14 @@ async def lifespan(app: FastAPI):
         # Shutdown — dispose connection pool
         await engine.dispose()
     print("*** Server Exited ***")
-    
+  # And all done.  
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
-    description="PostgreSQL CRUD API — Users  |  Python 3 + FastAPI + SQLAlchemy 2",
-    lifespan=lifespan,
+    description="Database CRUD API — Users  |  Python 3 + FastAPI + SQLAlchemy 2",
+    lifespan=lifespan,  # What signals are available for graceful shutdown?
+      #   SIGINT, SIGTERM, SIGQUIT, SIGHUP, SIGUSR1, SIGUSR2
 )
 
 app.add_middleware(
@@ -191,8 +212,10 @@ async def health():
     return {
         "status": "ok",
         "version": settings.VERSION,
-        "connected": True,
-        "connected_at " : f"connected:{datetime.timestamp(datetime.now( ))}"
-#  old        "connected_at": datetime.utcnow().isoformat() + "Z", # looking for a current datestamp interface...
+        "connected": DB_ROUTER_ENABLED and DB_INIT_ERROR is None,
+        "db_init": DB_INIT,
+        "db_ready": DB_ROUTER_ENABLED and DB_INIT_ERROR is None,
+        "db_error": str(DB_INIT_ERROR) if DB_INIT_ERROR else None,
+        "connected_at": f"connected:{datetime.timestamp(datetime.now())}"
     }
 # end 

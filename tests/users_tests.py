@@ -1,12 +1,25 @@
 """ File: users_tests.py
 """
 
+import importlib
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
 
 BASE = "/api/v1/users"
+
+
+def test_sqlite_mode_is_default_for_db_init_one(monkeypatch):
+    monkeypatch.setenv("DB_INIT", "1")
+    monkeypatch.setenv("DATABASE_URL", "sqlite+aiosqlite:///./test_app.db")
+
+    import app.core.config as config_module
+
+    importlib.reload(config_module)
+    assert config_module.settings.DB_INIT == 1
+    assert config_module.settings.DATABASE_URL.startswith("sqlite")
 
 
 @pytest.fixture

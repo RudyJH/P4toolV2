@@ -30,7 +30,11 @@ class UserRepository:
 
     # ── READ ──────────────────────────────────────────────────────────
     async def get_by_id(self, user_id: uuid.UUID) -> User | None:
-        result = await self.db.execute(select(User).where(User.id == user_id))
+        result = await self.db.execute(select(User).where(User.id == str(user_id)))
+        return result.scalar_one_or_none()
+
+    async def get_by_email(self, email: str) -> User | None:
+        result = await self.db.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
 
     async def list_users(self, page=1, limit=20, role=None):
@@ -50,9 +54,9 @@ class UserRepository:
         changes = data.model_dump(exclude_none=True)
         if not changes:
             return await self.get_by_id(user_id)
-        stmt = update(User).where(User.id == user_id).values(**changes).returning(User)
-        result = await self.db.execute(stmt)
-        return result.scalar_one_or_none()
+        stmt = update(User).where(User.id == str(user_id)).values(**changes)
+        await self.db.execute(stmt)
+        return await self.get_by_id(user_id)
 
     # ── DELETE ────────────────────────────────────────────────────────
     async def delete(self, user_id: uuid.UUID) -> bool:
