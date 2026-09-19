@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Database Dashboard{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', path='css/splash.css') }}">
+{% endblock %}
+
+{% block content %}
+    <main class="splash-container">
+        <h1>Database Dashboard</h1>
+        <div class="app-info">
+            <div class="info-row">
+                <span class="label">Application:</span>
+                <span class="value">{{ app_name }} v{{ version }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">DB Mode:</span>
+                <span class="value">{{ "Enabled" if db_router_enabled else "Disabled" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">DB Init:</span>
+                <span class="value">{{ db_init }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Status:</span>
+                <span class="value">{{ "Connected" if connected else "Unavailable" }}</span>
+            </div>
+            {% if db_error %}
+            <div class="info-row">
+                <span class="label">Error:</span>
+                <span class="value">{{ db_error }}</span>
+            </div>
+            {% endif %}
+        </div>
+        <nav class="navigation" aria-label="Application links">
+            <a href="/">Home</a>
+            <a href="/health-page">Health Page</a>
+        </nav>
+    </main>
+{% endblock %}

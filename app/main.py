@@ -55,7 +55,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings 
 from app.db.database import engine, Base
 from app.routers import users
-from app.splash_route import render_splash
+from app.splash_route import render_dashboard, render_health_page, render_splash
 
 from app.utils import ppp_utils
 
@@ -210,6 +210,35 @@ async def splash_screen(request: Request):
         startup_iso=startup_iso,
         uptime_seconds=uptime_seconds,
         db_router_enabled=DB_ROUTER_ENABLED,
+    )
+
+
+@app.get("/dashboard", tags=["meta"])
+async def dashboard_page(request: Request):
+    """Simple DB dashboard page for quick status checks."""
+    return render_dashboard(
+        request,
+        app_name=settings.APP_NAME,
+        version=settings.VERSION,
+        db_router_enabled=DB_ROUTER_ENABLED,
+        db_init=DB_INIT,
+        db_error=str(DB_INIT_ERROR) if DB_INIT_ERROR else None,
+        connected=DB_ROUTER_ENABLED and DB_INIT_ERROR is None,
+    )
+
+
+@app.get("/health-page", tags=["meta"])
+async def health_page(request: Request):
+    """Simple HTML health page with navigation back home."""
+    return render_health_page(
+        request,
+        app_name=settings.APP_NAME,
+        version=settings.VERSION,
+        db_init=DB_INIT,
+        db_ready=DB_ROUTER_ENABLED and DB_INIT_ERROR is None,
+        db_error=str(DB_INIT_ERROR) if DB_INIT_ERROR else None,
+        connected_at=f"connected:{datetime.timestamp(datetime.now())}",
+        status="ok" if DB_ROUTER_ENABLED and DB_INIT_ERROR is None else "degraded",
     )
 
 # Health check endpoint to verify the application is running and the database connection status.

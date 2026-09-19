@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Health Status{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', path='css/splash.css') }}">
+{% endblock %}
+
+{% block content %}
+    <main class="splash-container">
+        <h1>Health Status</h1>
+        <div class="app-info">
+            <div class="info-row">
+                <span class="label">Application:</span>
+                <span class="value">{{ app_name }} v{{ version }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Status:</span>
+                <span class="value">{{ status }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">DB Init:</span>
+                <span class="value">{{ db_init }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">DB Ready:</span>
+                <span class="value">{{ "Yes" if db_ready else "No" }}</span>
+            </div>
+            <div class="info-row">
+                <span class="label">Connected At:</span>
+                <span class="value">{{ connected_at }}</span>
+            </div>
+            {% if db_error %}
+            <div class="info-row">
+                <span class="label">Error:</span>
+                <span class="value">{{ db_error }}</span>
+            </div>
+            {% endif %}
+        </div>
+        <nav class="navigation" aria-label="Application links">
+            <a href="/">Home</a>
+            <a href="/dashboard">Dashboard</a>
+        </nav>
+    </main>
+{% endblock %}

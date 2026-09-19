@@ -39,3 +39,55 @@ def render_splash(
             "db_router_enabled": db_router_enabled,
         },
     )
+
+
+def render_dashboard(
+    request: Request,
+    *,
+    app_name: str,
+    version: str,
+    db_router_enabled: bool,
+    db_init: int,
+    db_error: str | None,
+    connected: bool,
+):
+    """Render a simple database dashboard screen."""
+    return templates.TemplateResponse(
+        request=request,
+        name="dashboard.html",
+        context={
+            "app_name": app_name,
+            "version": version,
+            "db_router_enabled": db_router_enabled,
+            "db_init": db_init,
+            "db_error": db_error,
+            "connected": connected,
+        },
+    )
+
+
+def render_health_page(
+    request: Request,
+    *,
+    app_name: str,
+    version: str,
+    db_init: int,
+    db_ready: bool,
+    db_error: str | None,
+    connected_at: str,
+    status: str,
+):
+    """Render a simple health information page."""
+    return templates.TemplateResponse(
+        request=request,
+        name="health_page.html",
+        context={
+            "app_name": app_name,
+            "version": version,
+            "db_init": db_init,
+            "db_ready": db_ready,
+            "db_error": db_error,
+            "connected_at": connected_at,
+            "status": status,
+        },
+    )
