@@ -48,7 +48,7 @@ import time
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 # importing SETTTINGS sets environment variables and reads .env file if present
@@ -136,7 +136,7 @@ async def lifespan(app: FastAPI):
     command_thread = threading.Thread(target=command_loop, args=(command_loop_stop,), daemon=True)
     command_thread.start()  # start the command loop in a separate thread for development purposes
 
-    yield  # and wait for the app to run. 
+    yield  # and this startup code waits here for the app to run. 
     # The lifespan context manager will resume here when the app is shutting down.
 
     # normal shutdown processes
@@ -150,6 +150,7 @@ async def lifespan(app: FastAPI):
     print("*** Server Exited ***")
   # And all done.  
 
+# Create the FastAPI app instance with the defined lifespan context manager.
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
@@ -168,6 +169,10 @@ app.add_middleware(
 
 # Mount the static directory
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon() -> FileResponse:
+    return FileResponse("static/favicon.ico")
 
 # adding a middleware to set a cookie named "connected_token" 
 # with a timestamp value for each HTTP request.
@@ -190,7 +195,8 @@ if DB_ROUTER_ENABLED:
 else:
     print("*** Users CRUD routes disabled because DB_ROUTER_ENABLED=0 ***")
 
-
+# handle the inital splash screen and health check endpoints.
+# ToDo: add a shutdown endpoint for graceful shutdown from the command loop.
 @app.get("/", response_class=HTMLResponse, tags=["meta"])
 async def splash_screen(request: Request):
     """Splash screen with application startup info."""
@@ -206,7 +212,9 @@ async def splash_screen(request: Request):
         db_router_enabled=DB_ROUTER_ENABLED,
     )
 
-
+# Health check endpoint to verify the application is running and the database connection status.
+# The health check endpoint returns a JSON response with the application status, version, database connection status, and any database initialization errors.
+# handles Event
 @app.get("/health", tags=["meta"])
 async def health():
     return {
